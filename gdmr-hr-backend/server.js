@@ -36,7 +36,39 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Something went wrong!' });
 });
 
+import User from './src/models/User.js';
+
+// ... imports
+
+// Auto-seed Admin User
+const ensureAdminUser = async () => {
+    try {
+        const adminExists = await User.findOne({ email: 'admin@gdmr.com' });
+        if (!adminExists) {
+            console.log('Seeding Admin User...');
+            await User.create({
+                name: 'Admin User',
+                email: 'admin@gdmr.com',
+                password: 'password123',
+                role: 'admin',
+            });
+            console.log('Admin User Created');
+        } else {
+            console.log('Admin User already exists');
+        }
+    } catch (error) {
+        console.error('Error seeding admin user:', error);
+    }
+};
+
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+const startServer = async () => {
+    await connectDB();
+    await ensureAdminUser();
+
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+};
+
+startServer();
