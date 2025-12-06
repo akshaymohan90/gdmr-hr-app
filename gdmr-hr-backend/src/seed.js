@@ -4,6 +4,8 @@ import connectDB from './config/db.js';
 import Employee from './models/Employee.js';
 import { employees } from './data/mockData.js';
 
+import User from './models/User.js';
+
 dotenv.config();
 
 const seedData = async () => {
@@ -11,6 +13,17 @@ const seedData = async () => {
         await connectDB();
 
         await Employee.deleteMany(); // Clear existing data
+        await User.deleteMany();
+
+        // Create Admin User
+        const adminUser = await User.create({
+            name: 'Admin User',
+            email: 'admin@gdmr.com',
+            password: 'password123',
+            role: 'admin',
+        });
+
+        console.log(`Admin User Created: ${adminUser.email} / password123`);
 
         // Transform mock data to match schema if needed (e.g. rename id to _id or let mongo handle it)
         // Here we map to match the schema exactly if there are differences

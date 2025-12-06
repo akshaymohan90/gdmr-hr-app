@@ -1,33 +1,49 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider, default as AuthContext } from './context/AuthContext';
+import { useContext } from 'react';
 import MainLayout from './components/Layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
 import EmployeeDetail from './pages/EmployeeDetail';
-import Leave from './pages/Leave';
 import Payroll from './pages/Payroll';
 import Performance from './pages/Performance';
+import Leave from './pages/Leave';
 import Settings from './pages/Settings';
-import PlaceholderPage from './pages/PlaceholderPage';
+import Login from './pages/Login';
 import './styles/variables.css';
 import './styles/global.css';
 
+// Protected Route Component
+const ProtectedRoute = () => {
+  const { token, loading } = useContext(AuthContext);
+
+  if (loading) return <div>Loading...</div>;
+
+  return token ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="employees" element={<Employees />} />
-          <Route path="employees/:id" element={<EmployeeDetail />} />
-          <Route path="leave" element={<Leave />} />
-          <Route path="payroll" element={<Payroll />} />
-          <Route path="performance" element={<Performance />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="employees" element={<Employees />} />
+              <Route path="employees/:id" element={<EmployeeDetail />} />
+              <Route path="payroll" element={<Payroll />} />
+              <Route path="performance" element={<Performance />} />
+              <Route path="leave" element={<Leave />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
