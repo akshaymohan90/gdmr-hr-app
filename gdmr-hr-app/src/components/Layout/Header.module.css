@@ -1,0 +1,144 @@
+.header {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.85);
+    /* Slightly more opaque than standard glass */
+}
+
+.menuBtn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-main);
+    cursor: pointer;
+    margin-right: var(--spacing-md);
+}
+
+.searchBar {
+    position: relative;
+    width: 300px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+}
+
+.searchInput {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 2.5rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-app);
+    font-family: var(--font-sans);
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+    background-color: var(--color-bg-surface);
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.iconBtn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-fast);
+}
+
+.iconBtn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--color-primary);
+}
+
+.badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-error);
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.userName {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--color-text-main);
+}
+
+.userRole {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 1024px) {
+    .menuBtn {
+        display: block;
+    }
+
+    .searchBar {
+        display: none;
+        /* Hide on mobile for simplicity */
+    }
+
+    .userInfo {
+        display: none;
+        /* Hide text on mobile */
+    }
+}
