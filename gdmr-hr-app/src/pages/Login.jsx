@@ -68,7 +68,7 @@ const Login = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        placeholder="admin@gdmr.com"
+                        placeholder="Enter your email"
                     />
                     <Input
                         label="Password"
@@ -76,18 +76,13 @@ const Login = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        placeholder="password123"
+                        placeholder="Enter your password"
                     />
 
                     <Button type="submit" disabled={loading} style={{ marginTop: 'var(--spacing-sm)' }}>
                         {loading ? 'Signing in...' : 'Sign In'}
                     </Button>
                 </form>
-
-                <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    Demo Credentials:<br />
-                    admin@gdmr.com / password123
-                </div>
             </div>
         </div>
     );

@@ -17,9 +17,22 @@ const userSchema = mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'employee'],
+        enum: ['admin', 'manager', 'employee'], // Added manager
         default: 'employee',
     },
+    // New fields for unifying Employee + User
+    department: { type: String, default: '' },
+    position: { type: String, default: '' },
+    manager: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    joinDate: {
+        type: Date,
+        default: Date.now
+    },
+    salary: { type: Number, default: 0 }
 }, {
     timestamps: true,
 });

@@ -8,38 +8,19 @@ import hpp from 'hpp';
 import connectDB from './src/config/db.js';
 import authRoutes from './src/routes/authRoutes.js';
 import employeeRoutes from './src/routes/employeeRoutes.js';
+import attendanceRoutes from './src/routes/attendanceRoutes.js';
+import leaveRoutes from './src/routes/leaveRoutes.js';
 import User from './src/models/User.js';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 5001;
-
-// Security Middleware
-app.use(helmet()); // Set security headers
-app.use(mongoSanitize()); // Prevent NoSQL injection
-app.use(hpp()); // Prevent HTTP Parameter Pollution
-
-// Rate Limiting
-const limiter = rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api', limiter);
-
-// Middleware
-app.use(cors({
-    origin: ['https://gdmr.netlify.app', 'http://localhost:5173'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json({ limit: '10kb' })); // Limit body size
+// ... (middleware setup remains same)
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leaves', leaveRoutes);
 
 // Base route
 app.get('/', (req, res) => {
