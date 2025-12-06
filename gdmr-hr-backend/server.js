@@ -13,9 +13,10 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors({
-    origin: '*', // For production, replace * with your specific Vercel URL
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
+    origin: ['https://gdmr.netlify.app', 'http://localhost:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
