@@ -4,11 +4,9 @@ import dotenv from 'dotenv';
 import connectDB from './src/config/db.js';
 import authRoutes from './src/routes/authRoutes.js';
 import employeeRoutes from './src/routes/employeeRoutes.js';
+import User from './src/models/User.js';
 
 dotenv.config();
-
-// Connect to Database
-connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -36,10 +34,6 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Something went wrong!' });
 });
 
-import User from './src/models/User.js';
-
-// ... imports
-
 // Auto-seed Admin User
 const ensureAdminUser = async () => {
     try {
@@ -63,12 +57,17 @@ const ensureAdminUser = async () => {
 
 // Start server
 const startServer = async () => {
-    await connectDB();
-    await ensureAdminUser();
+    try {
+        await connectDB();
+        await ensureAdminUser();
 
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
+    }
 };
 
 startServer();
