@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 import connectDB from './src/config/db.js';
 import authRoutes from './src/routes/authRoutes.js';
 import employeeRoutes from './src/routes/employeeRoutes.js';
@@ -11,6 +15,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Security Middleware
+app.use(helmet()); // Set security headers
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(hpp()); // Prevent HTTP Parameter Pollution
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api', limiter);
+
 // Middleware
 app.use(cors({
     origin: ['https://gdmr.netlify.app', 'http://localhost:5173'],
@@ -18,7 +35,7 @@ app.use(cors({
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10kb' })); // Limit body size
 
 // Routes
 app.use('/api/auth', authRoutes);
