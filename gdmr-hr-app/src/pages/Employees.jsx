@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import AuthContext from '../context/AuthContext';
+import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiSearch, FiFilter, FiMoreVertical } from 'react-icons/fi';
 import Table from '../components/UI/Table';
@@ -8,6 +9,7 @@ import Badge from '../components/UI/Badge';
 import Modal from '../components/UI/Modal';
 
 const Employees = () => {
+    const { token } = useContext(AuthContext); // Get token from context
     const navigate = useNavigate();
     const [employees, setEmployees] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +20,17 @@ const Employees = () => {
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/employees`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/employees`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    console.error("Unauthorized! Token might be invalid.");
+                    return;
+                }
+
                 const data = await response.json();
                 // Add avatar since backend doesn't provide it yet
                 const enrichedData = data.map(emp => ({
@@ -31,8 +43,8 @@ const Employees = () => {
             }
         };
 
-        fetchEmployees();
-    }, []);
+        if (token) fetchEmployees();
+    }, [token]);
 
     const columns = useMemo(() => [
         {
