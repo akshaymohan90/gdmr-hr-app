@@ -4,7 +4,12 @@ import Table from '../components/UI/Table';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import Card from '../components/UI/Card';
-import { MOCK_REVIEWS } from '../data/mockData';
+// Mock data for Performance - to be replaced with API later
+const MOCK_REVIEWS = [
+    { id: 1, employee: 'Sarah Johnson', period: 'Q3 2023', reviewer: 'John Doe', rating: 4.5, status: 'Completed' },
+    { id: 2, employee: 'Mike Chen', period: 'Q3 2023', reviewer: 'John Doe', rating: 4.0, status: 'Signed' },
+    { id: 3, employee: 'Emily Davis', period: 'Q3 2023', reviewer: 'Sarah Johnson', rating: 0, status: 'Draft' },
+];
 
 const Performance = () => {
     const columns = [

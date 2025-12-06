@@ -4,7 +4,12 @@ import Table from '../components/UI/Table';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import Card from '../components/UI/Card';
-import { MOCK_PAYROLL } from '../data/mockData';
+// Mock data for Payroll - to be replaced with API later
+const MOCK_PAYROLL = [
+    { id: 1, month: 'Nov 2023', employee: 'Sarah Johnson', basic: 5000, bonus: 500, deductions: 200, net: 5300, status: 'Paid' },
+    { id: 2, month: 'Nov 2023', employee: 'Mike Chen', basic: 4500, bonus: 300, deductions: 150, net: 4650, status: 'Paid' },
+    { id: 3, month: 'Nov 2023', employee: 'Emily Davis', basic: 4000, bonus: 0, deductions: 100, net: 3900, status: 'Processing' },
+];
 
 const Payroll = () => {
     const columns = [
