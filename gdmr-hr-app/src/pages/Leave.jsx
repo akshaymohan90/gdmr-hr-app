@@ -1,27 +1,118 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { FiPlus, FiCheck, FiX, FiCalendar } from 'react-icons/fi';
+import AuthContext from '../context/AuthContext';
 import Table from '../components/UI/Table';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import Card from '../components/UI/Card';
 import Modal from '../components/UI/Modal';
 import Input from '../components/UI/Input';
-import { MOCK_LEAVES } from '../data/mockData';
 
 const Leave = () => {
-    const [leaves, setLeaves] = useState(MOCK_LEAVES);
+    const { token, user } = useContext(AuthContext);
+    const [leaves, setLeaves] = useState([]);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [newItem, setNewItem] = useState({ type: 'Annual Leave', startDate: '', endDate: '', reason: '' });
+
+    const fetchLeaves = async () => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/leaves`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setLeaves(data);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        if (token) fetchLeaves();
+    }, [token]);
+
+    const handleCreateRequest = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/leaves`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newItem)
+            });
+            if (response.ok) {
+                setIsRequestModalOpen(false);
+                setNewItem({ type: 'Annual Leave', startDate: '', endDate: '', reason: '' });
+                fetchLeaves();
+            } else {
+                alert('Failed to submit request');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleApproval = async (id, action) => {
+        // Determine endpoint based on role and status
+        // A Manager approves 'Pending Manager' -> /leaves/:id/manager
+        // An Admin approves 'Pending Admin' -> /leaves/:id/admin
+
+        let endpointSuffix = '';
+        const leaveItem = leaves.find(l => l._id === id);
+        if (!leaveItem) return;
+
+        if (user.role === 'manager' && leaveItem.status === 'Pending Manager') {
+            endpointSuffix = 'manager';
+        } else if (user.role === 'admin' && leaveItem.status === 'Pending Admin') {
+            endpointSuffix = 'admin';
+        } else {
+            // Admin can likely override manager approval too? For now, stick to flow.
+            if (user.role === 'admin' && leaveItem.status === 'Pending Manager') {
+                // Allow admin to act as manager if needed? Or strictly next step?
+                // Let's assume Admin only acts on Pending Admin for this strict flow, 
+                // OR Admin can force approve. The backend routes separate them.
+                // If Admin wants to approve step 1, they need to be the manager.
+                return alert('This request is waiting for Manager approval.');
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/leaves/${id}/${endpointSuffix}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ action }) // 'Approve' or 'Reject'
+            });
+            if (response.ok) {
+                fetchLeaves();
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const columns = useMemo(() => [
-        { header: 'Employee', accessor: 'employeeName' },
+        { header: 'Employee', accessor: 'user', render: (row) => row.user?.name || 'Unknown' },
         { header: 'Type', accessor: 'type' },
-        { header: 'Dates', accessor: 'id', render: (row) => `${row.startDate} to ${row.endDate}` },
-        { header: 'Days', accessor: 'days' },
+        {
+            header: 'Dates',
+            accessor: '_id',
+            render: (row) => `${new Date(row.startDate).toLocaleDateString()} - ${new Date(row.endDate).toLocaleDateString()}`
+        },
         {
             header: 'Status',
             accessor: 'status',
             render: (row) => (
-                <Badge variant={row.status === 'Approved' ? 'success' : row.status === 'Pending' ? 'warning' : 'error'}>
+                <Badge variant={
+                    row.status === 'Approved' ? 'success' :
+                        row.status === 'Rejected' ? 'error' : 'warning'
+                }>
                     {row.status}
                 </Badge>
             )
@@ -30,58 +121,48 @@ const Leave = () => {
         {
             header: 'Actions',
             accessor: 'actions',
-            render: (row) => row.status === 'Pending' && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <Button size="sm" style={{ padding: '4px 8px' }} onClick={() => handleStatusChange(row.id, 'Approved')}>
-                        <FiCheck />
-                    </Button>
-                    <Button size="sm" variant="ghost" style={{ padding: '4px 8px', color: 'var(--color-error)' }} onClick={() => handleStatusChange(row.id, 'Rejected')}>
-                        <FiX />
-                    </Button>
-                </div>
-            )
-        }
-    ], []);
+            render: (row) => {
+                // Show actions if:
+                // 1. Pending Manager AND I am Manager
+                // 2. Pending Admin AND I am Admin
+                const showManagerAction = user.role === 'manager' && row.status === 'Pending Manager';
+                const showAdminAction = user.role === 'admin' && row.status === 'Pending Admin';
 
-    const handleStatusChange = (id, newStatus) => {
-        setLeaves(leaves.map(leave =>
-            leave.id === id ? { ...leave, status: newStatus } : leave
-        ));
-    };
+                if (showManagerAction || showAdminAction) {
+                    return (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <Button size="sm" style={{ padding: '4px 8px' }} onClick={() => handleApproval(row._id, 'Approve')}>
+                                <FiCheck />
+                            </Button>
+                            <Button size="sm" variant="ghost" style={{ padding: '4px 8px', color: 'var(--color-error)' }} onClick={() => handleApproval(row._id, 'Reject')}>
+                                <FiX />
+                            </Button>
+                        </div>
+                    );
+                }
+                return null;
+            }
+        }
+    ], [leaves, user]);
+
+    // Employee view: hide Employee column?
+    const displayColumns = user.role === 'employee' ? columns.filter(c => c.header !== 'Employee' && c.header !== 'Actions') : columns;
 
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
                 <div>
                     <h1>Leave Management</h1>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>Track and approve employee leave requests.</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }}>Track and approve leave requests.</p>
                 </div>
                 <Button onClick={() => setIsRequestModalOpen(true)}>
                     <FiPlus style={{ marginRight: '8px' }} />
-                    New Request
+                    Request Leave
                 </Button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-xl)' }}>
-                <Card>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <FiCalendar style={{ color: 'var(--color-primary)' }} />
-                        <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>Pending Requests</span>
-                    </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>{leaves.filter(l => l.status === 'Pending').length}</div>
-                </Card>
-                <Card>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-success)' }} />
-                        <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>On Leave Today</span>
-                    </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>2</div>
-                </Card>
-            </div>
-
             <Card>
-                <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Recent Requests</h3>
-                <Table columns={columns} data={leaves} />
+                <Table columns={displayColumns} data={leaves} />
             </Card>
 
             <Modal
@@ -89,19 +170,55 @@ const Leave = () => {
                 onClose={() => setIsRequestModalOpen(false)}
                 title="Request Leave"
             >
-                <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-md)' }}>
-                    This is a mock form. In a real app, this would submit a request for the logged-in user.
-                </p>
-                <Input label="Leave Type" placeholder="Annual, Sick, etc." />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-                    <Input label="Start Date" type="date" />
-                    <Input label="End Date" type="date" />
-                </div>
-                <Input label="Reason" placeholder="Reason for leave" />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
-                    <Button variant="ghost" onClick={() => setIsRequestModalOpen(false)}>Cancel</Button>
-                    <Button onClick={() => setIsRequestModalOpen(false)}>Submit Request</Button>
-                </div>
+                <form onSubmit={handleCreateRequest} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Leave Type</label>
+                        <select
+                            value={newItem.type}
+                            onChange={(e) => setNewItem({ ...newItem, type: e.target.value })}
+                            style={{
+                                padding: '0.75rem',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--color-border)',
+                                background: 'var(--color-bg-surface)',
+                                color: 'var(--color-text-main)'
+                            }}
+                        >
+                            <option>Annual Leave</option>
+                            <option>Sick Leave</option>
+                            <option>Casual Leave</option>
+                            <option>Unpaid Leave</option>
+                        </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                        <Input
+                            label="Start Date"
+                            type="date"
+                            value={newItem.startDate}
+                            onChange={(e) => setNewItem({ ...newItem, startDate: e.target.value })}
+                            required
+                        />
+                        <Input
+                            label="End Date"
+                            type="date"
+                            value={newItem.endDate}
+                            onChange={(e) => setNewItem({ ...newItem, endDate: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <Input
+                        label="Reason"
+                        placeholder="Reason for leave"
+                        value={newItem.reason}
+                        onChange={(e) => setNewItem({ ...newItem, reason: e.target.value })}
+                        required
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+                        <Button variant="ghost" type="button" onClick={() => setIsRequestModalOpen(false)}>Cancel</Button>
+                        <Button type="submit">Submit Request</Button>
+                    </div>
+                </form>
             </Modal>
         </div>
     );

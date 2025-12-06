@@ -34,11 +34,12 @@ function App() {
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="employees" element={<Employees />} />
-              <Route path="employees/:id" element={<EmployeeDetail />} />
+              <Route path="employees/:id" element={<EmployeeDetail />} /> {/* Keep original component name */}
+              <Route path="attendance" element={<Attendance />} />
+              <Route path="leave" element={<Leave />} />
               <Route path="payroll" element={<Payroll />} />
               <Route path="performance" element={<Performance />} />
-              <Route path="leave" element={<Leave />} />
-              <Route path="settings" element={<Settings />} />
+              <Route path="settings" element={<div>Settings Page</div>} /> {/* Change element as per instruction */}
             </Route>
           </Route>
         </Routes>

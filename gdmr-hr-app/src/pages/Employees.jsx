@@ -9,41 +9,52 @@ import Badge from '../components/UI/Badge';
 import Modal from '../components/UI/Modal';
 
 const Employees = () => {
-    const { token } = useContext(AuthContext); // Get token from context
+    const { token, user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [employees, setEmployees] = useState([]);
+    const [managers, setManagers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newEmployee, setNewEmployee] = useState({ name: '', role: '', department: '', email: '' });
 
-    // Fetch employees from backend
+    const initialFormState = {
+        name: '',
+        email: '',
+        password: '',
+        role: 'employee',
+        department: '',
+        position: '',
+        manager: ''
+    };
+    const [newEmployee, setNewEmployee] = useState(initialFormState);
+
+    // Fetch employees and managers
     useEffect(() => {
-        const fetchEmployees = async () => {
+        const fetchData = async () => {
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/employees`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (response.status === 401) {
-                    console.error("Unauthorized! Token might be invalid.");
-                    return;
-                }
+                if (response.status === 401) return;
 
                 const data = await response.json();
-                // Add avatar since backend doesn't provide it yet
+
                 const enrichedData = data.map(emp => ({
                     ...emp,
                     avatar: `https://ui-avatars.com/api/?name=${emp.name}&background=random`
                 }));
                 setEmployees(enrichedData);
+
+                // Filter potential managers (admins and managers)
+                const managerList = data.filter(e => e.role === 'admin' || e.role === 'manager');
+                setManagers(managerList);
+
             } catch (error) {
-                console.error("Failed to fetch employees:", error);
+                console.error("Failed to fetch data:", error);
             }
         };
 
-        if (token) fetchEmployees();
+        if (token) fetchData();
     }, [token]);
 
     const columns = useMemo(() => [
@@ -67,33 +78,19 @@ const Employees = () => {
                 </div>
             )
         },
-        { header: 'Role', accessor: 'role' },
+        { header: 'Role', accessor: 'role', render: (row) => <span style={{ textTransform: 'capitalize' }}>{row.role}</span> },
         { header: 'Department', accessor: 'department' },
+        { header: 'Reporting To', accessor: 'manager', render: (row) => row.manager?.name || '-' },
         {
-            header: 'Status',
-            accessor: 'status',
-            render: (row) => (
-                <Badge variant={row.status === 'Active' ? 'success' : row.status === 'On Leave' ? 'warning' : 'error'}>
-                    {row.status}
-                </Badge>
-            )
-        },
-        { header: 'Joined', accessor: 'joinDate' },
-        {
-            header: '',
-            accessor: 'actions',
-            width: '50px',
-            render: () => (
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
-                    <FiMoreVertical />
-                </button>
-            )
+            header: 'Joined',
+            accessor: 'joinDate',
+            render: (row) => new Date(row.joinDate).toLocaleDateString()
         }
     ], []);
 
     const filteredEmployees = employees.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.department.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -119,26 +116,32 @@ const Employees = () => {
                 };
                 setEmployees([...employees, employeeWithAvatar]);
                 setIsAddModalOpen(false);
-                setNewEmployee({ name: '', role: '', department: '', email: '' });
+                setNewEmployee(initialFormState);
             } else {
-                console.error("Failed to add employee:", response.status, response.statusText);
+                const err = await response.json();
+                alert(`Failed: ${err.message}`);
             }
         } catch (error) {
             console.error("Error adding employee:", error);
         }
     };
 
+    // Only Admin can add employees
+    const canAdd = user?.role === 'admin';
+
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
                 <div>
                     <h1>Employees</h1>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>Manage your team members</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }}>Manage your team structure</p>
                 </div>
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                    <FiPlus style={{ marginRight: '8px' }} />
-                    Add Employee
-                </Button>
+                {canAdd && (
+                    <Button onClick={() => setIsAddModalOpen(true)}>
+                        <FiPlus style={{ marginRight: '8px' }} />
+                        Add New User
+                    </Button>
+                )}
             </div>
 
             <div className="glass-panel" style={{ padding: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
@@ -160,10 +163,6 @@ const Employees = () => {
                             }}
                         />
                     </div>
-                    <Button variant="secondary">
-                        <FiFilter style={{ marginRight: '8px' }} />
-                        Filter
-                    </Button>
                 </div>
 
                 <Table columns={columns} data={filteredEmployees} />
@@ -172,43 +171,93 @@ const Employees = () => {
             <Modal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                title="Add New Employee"
+                title="Create New User"
             >
                 <form onSubmit={handleAddEmployee} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                    <Input
-                        label="Full Name"
-                        placeholder="e.g. John Doe"
-                        value={newEmployee.name}
-                        onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                        required
-                    />
-                    <Input
-                        label="Email Address"
-                        type="email"
-                        placeholder="e.g. john@company.com"
-                        value={newEmployee.email}
-                        onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
-                        required
-                    />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <Input
-                            label="Role"
-                            placeholder="e.g. Developer"
-                            value={newEmployee.role}
-                            onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
+                            label="Full Name"
+                            value={newEmployee.name}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
                             required
                         />
                         <Input
+                            label="Email"
+                            type="email"
+                            value={newEmployee.email}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                            required
+                        />
+                    </div>
+
+                    <Input
+                        label="Password"
+                        type="password"
+                        value={newEmployee.password}
+                        onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                        required
+                        placeholder="Initial password"
+                    />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Role</label>
+                            <select
+                                value={newEmployee.role}
+                                onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
+                                style={{
+                                    padding: '0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--color-border)',
+                                    background: 'var(--color-bg-surface)',
+                                    color: 'var(--color-text-main)'
+                                }}
+                            >
+                                <option value="employee">Employee</option>
+                                <option value="manager">Manager</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Reporting Manager</label>
+                            <select
+                                value={newEmployee.manager}
+                                onChange={(e) => setNewEmployee({ ...newEmployee, manager: e.target.value })}
+                                style={{
+                                    padding: '0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--color-border)',
+                                    background: 'var(--color-bg-surface)',
+                                    color: 'var(--color-text-main)'
+                                }}
+                            >
+                                <option value="">None</option>
+                                {managers.map(m => (
+                                    <option key={m._id} value={m._id}>{m.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                        <Input
                             label="Department"
-                            placeholder="e.g. Engineering"
                             value={newEmployee.department}
                             onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
                             required
                         />
+                        <Input
+                            label="Position"
+                            value={newEmployee.position}
+                            onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
+                            required
+                        />
                     </div>
+
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
                         <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                        <Button type="submit">Add Employee</Button>
+                        <Button type="submit">Create User</Button>
                     </div>
                 </form>
             </Modal>

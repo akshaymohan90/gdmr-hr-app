@@ -6,6 +6,7 @@ import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
     { path: '/', label: 'Dashboard', icon: FiHome },
+    { path: '/attendance', label: 'Attendance', icon: FiClock },
     { path: '/employees', label: 'Employees', icon: FiUsers },
     { path: '/leave', label: 'Leave', icon: FiCalendar },
     { path: '/payroll', label: 'Payroll', icon: FiDollarSign },
@@ -14,7 +15,22 @@ const NAV_ITEMS = [
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
-    const { logout } = useContext(AuthContext);
+    const { logout, user } = useContext(AuthContext);
+
+    const filteredItems = NAV_ITEMS.filter(item => {
+        if (user?.role === 'admin') return true;
+        if (user?.role === 'manager') {
+            // Managers see mostly everything, but maybe not 'Settings' in full depth (simplified for now: all)
+            return true;
+        }
+        // Employees: Hide 'Employees' (directory management), 'Payroll' (admin view)
+        // They should only see Dashboard, Leave, Performance (My view)
+        // For simplicity in this iteration:
+        if (user?.role === 'employee') {
+            return ['/', '/leave', '/performance'].includes(item.path);
+        }
+        return false;
+    });
 
     return (
         <>
@@ -28,7 +44,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
 
                 <nav className={styles.nav}>
-                    {NAV_ITEMS.map((item) => (
+                    {filteredItems.map((item) => (
                         <NavLink
                             key={item.path}
                             to={item.path}
@@ -44,6 +60,12 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </nav>
 
                 <div className={styles.footer}>
+                    {user && (
+                        <div style={{ marginBottom: '1rem', padding: '0 0.5rem', fontSize: '0.8rem' }}>
+                            <div style={{ fontWeight: 600 }}>{user.name}</div>
+                            <div style={{ opacity: 0.7, textTransform: 'capitalize' }}>{user.role}</div>
+                        </div>
+                    )}
                     <button className={styles.logoutBtn} onClick={logout}>
                         <FiLogOut className={styles.icon} />
                         <span>Logout</span>
