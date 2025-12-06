@@ -105,6 +105,7 @@ const Employees = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(newEmployee),
             });
@@ -119,6 +120,8 @@ const Employees = () => {
                 setEmployees([...employees, employeeWithAvatar]);
                 setIsAddModalOpen(false);
                 setNewEmployee({ name: '', role: '', department: '', email: '' });
+            } else {
+                console.error("Failed to add employee:", response.status, response.statusText);
             }
         } catch (error) {
             console.error("Error adding employee:", error);
