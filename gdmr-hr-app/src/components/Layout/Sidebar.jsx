@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { FiHome, FiUsers, FiCalendar, FiDollarSign, FiActivity, FiSettings, FiLogOut, FiX } from 'react-icons/fi';
+import AuthContext from '../../context/AuthContext';
 import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
@@ -13,6 +14,8 @@ const NAV_ITEMS = [
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
+    const { logout } = useContext(AuthContext);
+
     return (
         <>
             <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
@@ -41,7 +44,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </nav>
 
                 <div className={styles.footer}>
-                    <button className={styles.logoutBtn}>
+                    <button className={styles.logoutBtn} onClick={logout}>
                         <FiLogOut className={styles.icon} />
                         <span>Logout</span>
                     </button>
